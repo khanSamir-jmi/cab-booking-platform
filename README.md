@@ -1,4 +1,4 @@
-# 🚕 Terminal Cabs — Modern Cab Booking & Dispatch Platform
+# 🚕 Anam Tours & Travel — Modern Cab Booking & Dispatch Platform
 
 A production-ready, full-stack cab booking and automated fleet management application built with **Next.js 14 (App Router)**, **Supabase (Auth & PostgreSQL)**, **Tailwind CSS**, and **Leaflet / OpenStreetMap**.
 
@@ -84,7 +84,7 @@ Fill in your Supabase project credentials in `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project-ref.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-ADMIN_EMAIL=admin@terminalcabs.in
+ADMIN_EMAIL=admin@anamtourstravel.com
 ```
 
 ### 4. Database Setup

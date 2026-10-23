@@ -7,11 +7,16 @@ export function Footer() {
         <div className="grid gap-10 sm:grid-cols-2 md:grid-cols-4">
           {/* Company Info & Location */}
           <div className="space-y-4 sm:col-span-2 md:col-span-1">
-            <Link href="/" className="font-display text-2xl font-bold text-ink">
-              Terminal<span className="text-marigold">.</span>
+            <Link href="/" className="font-display text-2xl font-bold text-ink flex items-center gap-2">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded bg-route text-marigold font-display font-black text-sm border border-marigold/70 shadow-sm">
+                A
+              </span>
+              <span>
+                Anam Tours & Travel<span className="text-marigold">.</span>
+              </span>
             </Link>
             <p className="text-xs text-ink/70 leading-relaxed">
-              India&apos;s transparent cab platform. Fixed upfront fares for Local rides, Outstation trips, Dhanbad Sightseeing, and Hourly rentals.
+              India&apos;s transparent travel and cab platform. Fixed upfront fares for Local rides, Outstation trips, Dhanbad Sightseeing, and Hourly rentals.
             </p>
             <div className="space-y-1.5 font-mono text-xs text-ink/70 pt-1">
               <p className="flex items-start gap-1.5">
@@ -26,8 +31,8 @@ export function Footer() {
               </p>
               <p className="flex items-center gap-1.5">
                 <span className="text-route font-bold">✉️</span>
-                <a href="mailto:support@terminalcabs.in" className="hover:text-route transition">
-                  support@terminalcabs.in
+                <a href="mailto:support@anamtourstravel.com" className="hover:text-route transition">
+                  support@anamtourstravel.com
                 </a>
               </p>
             </div>
@@ -144,7 +149,7 @@ export function Footer() {
 
         {/* Footer Bottom Bar */}
         <div className="mt-12 flex flex-wrap items-center justify-between border-t border-line/60 pt-6 text-xs text-ink/50 font-mono">
-          <p>© {new Date().getFullYear()} Terminal Cabs India. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Anam Tours & Travel. All rights reserved.</p>
           <p>Built with Next.js 14, Tailwind CSS & Supabase</p>
         </div>
       </div>

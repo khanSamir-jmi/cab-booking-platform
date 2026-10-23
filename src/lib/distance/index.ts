@@ -39,7 +39,7 @@ export async function geocodeLocation(location: string): Promise<[number, number
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location + ", India")}&limit=1`,
-      { headers: { "User-Agent": "TerminalCabs/1.0" } }
+      { headers: { "User-Agent": "AnamToursTravel/1.0" } }
     );
     const data = await res.json();
     if (data && data[0]) {
