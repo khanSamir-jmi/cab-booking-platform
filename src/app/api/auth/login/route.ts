@@ -68,15 +68,46 @@ export async function POST(request: Request) {
         }
       }
     } else {
-      // 2. OTP Login
+      // 2. OTP Login Mode
       if (otpCode && otpCode !== "123456" && isEmail) {
         const { data: vData, error: vErr } = await supabase.auth.verifyOtp({
           email,
           token: otpCode,
           type: "email",
         });
-        if (!vErr && vData.user) {
+        if (!vErr && vData?.user) {
           activeUser = vData.user;
+        } else if (vErr) {
+          console.warn("Real Email OTP verification failed:", vErr.message);
+          return NextResponse.json(
+            { error: "Invalid or expired OTP code. Please check your inbox or request a new one." },
+            { status: 400 }
+          );
+        }
+      }
+
+      if (otpCode && otpCode !== "123456" && !isEmail) {
+        const digits = rawInput.replace(/[^0-9]/g, "");
+        const formattedPhone = rawInput.startsWith("+")
+          ? rawInput.replace(/[\s-]/g, "")
+          : digits.length === 10
+          ? `+91${digits}`
+          : `+${digits}`;
+
+        const { data: vData, error: vErr } = await supabase.auth.verifyOtp({
+          phone: formattedPhone,
+          token: otpCode,
+          type: "sms",
+        });
+
+        if (!vErr && vData?.user) {
+          activeUser = vData.user;
+        } else if (vErr) {
+          console.warn("Real Phone OTP verification failed:", vErr.message);
+          return NextResponse.json(
+            { error: "Invalid or expired SMS OTP code. (Tip: You can use your Email address for free instant OTP!)" },
+            { status: 400 }
+          );
         }
       }
 

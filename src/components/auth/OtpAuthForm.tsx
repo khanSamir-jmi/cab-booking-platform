@@ -35,15 +35,34 @@ export function OtpAuthForm() {
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
-  function handleSendOtp(e: React.FormEvent) {
+  async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault();
     if (!phoneOrEmail.trim()) return;
 
     setError(null);
-    setInfoNotice("Verification code sent! Enter the 6-digit OTP received, or use test code 123456.");
-    setStep("otp");
-    setResendTimer(30);
-    setCanResend(false);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneOrEmail }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send verification code.");
+
+      setInfoNotice(data.message || `Verification code sent to ${phoneOrEmail}.`);
+      setStep("otp");
+      setResendTimer(30);
+      setCanResend(false);
+      setOtpValues(["", "", "", "", "", ""]);
+      setTimeout(() => inputRefs.current[0]?.focus(), 100);
+    } catch (err: any) {
+      setError(err.message || "Failed to send verification code.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handleDigitChange(index: number, value: string) {
@@ -125,10 +144,26 @@ export function OtpAuthForm() {
     }
   }
 
-  function handleResend() {
-    setResendTimer(30);
-    setCanResend(false);
-    setInfoNotice("Resent OTP. Enter 6-digit code or test code 123456.");
+  async function handleResend() {
+    if (!phoneOrEmail.trim() || !canResend) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phoneOrEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to resend code.");
+      setResendTimer(30);
+      setCanResend(false);
+      setInfoNotice(data.message || `New verification code sent to ${phoneOrEmail}.`);
+    } catch (err: any) {
+      setError(err.message || "Failed to resend verification code.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -275,7 +310,7 @@ export function OtpAuthForm() {
             <input
               type="email"
               required
-              placeholder="user@example.com or admin@terminalcabs.in"
+              placeholder="name@example.com"
               value={phoneOrEmail}
               onChange={(e) => setPhoneOrEmail(e.target.value)}
               className="mt-1 w-full rounded-stub border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-route focus:outline-none"

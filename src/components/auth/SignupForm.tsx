@@ -137,7 +137,7 @@ export function SignupForm() {
             id="email"
             type="email"
             autoFocus
-            placeholder="you@example.com or admin@terminalcabs.in"
+            placeholder="name@example.com"
             {...register("email")}
             className="mt-1.5 w-full rounded-stub border border-line bg-paper px-3 py-2 text-sm text-ink focus:border-route focus:outline-none"
           />
