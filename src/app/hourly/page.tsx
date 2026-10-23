@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { getActiveHourlySlabs } from "@/lib/pricing/hourly";
@@ -20,7 +21,9 @@ export default async function HourlyRentalPage() {
           Rent a cab by the hour with fixed km limits included. Ideal for multi-stop city errands or business meetings.
         </p>
         <div className="mt-8">
-          <HourlyRentalSlabPicker slabs={slabs} />
+          <Suspense fallback={<div className="p-8 text-center text-ink/50 font-mono text-sm">Loading hourly packages...</div>}>
+            <HourlyRentalSlabPicker slabs={slabs} />
+          </Suspense>
         </div>
       </main>
       <Footer />

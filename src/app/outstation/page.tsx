@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { getActiveOutstationRoutes } from "@/lib/pricing/outstation";
@@ -20,7 +21,9 @@ export default async function OutstationBookingPage() {
           Fixed city-to-city pricing. Pick a route, select your pickup location, and book seamlessly.
         </p>
         <div className="mt-8">
-          <OutstationBookingForm routes={routes} />
+          <Suspense fallback={<div className="p-8 text-center text-ink/50 font-mono text-sm">Loading outstation routes...</div>}>
+            <OutstationBookingForm routes={routes} />
+          </Suspense>
         </div>
       </main>
       <Footer />

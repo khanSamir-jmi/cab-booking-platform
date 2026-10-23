@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser, ensureValidUuid } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { FareBreakdownCard } from "@/components/booking/FareBreakdownCard";
@@ -23,10 +23,11 @@ export default async function BookingDetailPage({
 }: {
   params: { id: string };
 }) {
-  await requireUser(`/login?redirect=/bookings/${params.id}`);
-  const supabase = createClient();
+  const user = await requireUser(`/login?redirect=/bookings/${params.id}`);
+  const validUserId = ensureValidUuid(user.id, user.email);
+  const db = createAdminClient();
 
-  const { data: booking } = await supabase
+  const { data: booking } = await db
     .from("bookings")
     .select("*, drivers(*)")
     .eq("id", params.id)
@@ -34,7 +35,16 @@ export default async function BookingDetailPage({
 
   if (!booking) notFound();
 
-  const { data: payments } = await supabase
+  // If user is not admin, ensure they only view their own booking
+  const isEmailAdmin =
+    user.email?.toLowerCase().includes("admin@") ||
+    user.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase();
+
+  if (!isEmailAdmin && booking.customer_id && booking.customer_id !== validUserId) {
+    notFound();
+  }
+
+  const { data: payments } = await db
     .from("payments")
     .select("*")
     .eq("booking_id", params.id)

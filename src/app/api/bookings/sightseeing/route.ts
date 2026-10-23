@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentUser, ensureValidUuid } from "@/lib/auth";
 import { getSightseeingPackageById } from "@/lib/pricing/sightseeing";
 
 export async function POST(request: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return NextResponse.json(
@@ -50,13 +48,34 @@ export async function POST(request: Request) {
   };
 
   try {
-    const { data: booking, error } = await supabase
+    const validUserId = ensureValidUuid(user.id, user.email);
+    const db = createAdminClient();
+
+    // Ensure profile row exists for foreign key
+    try {
+      await db.from("profiles").upsert(
+        {
+          id: validUserId,
+          full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Customer",
+          phone: user.phone || null,
+          role: "customer",
+        },
+        { onConflict: "id" }
+      );
+    } catch {
+      // Safe fallback
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const cleanPkgId = pkg.id && uuidRegex.test(pkg.id) ? pkg.id : null;
+
+    const { data: booking, error } = await db
       .from("bookings")
       .insert({
-        customer_id: user.id,
+        customer_id: validUserId,
         service_type: "sightseeing",
         status: "requested",
-        package_id: pkg.id.startsWith("pkg-") ? null : pkg.id,
+        package_id: cleanPkgId,
         pickup_location: pickup.trim(),
         fare_breakdown: fareBreakdown,
         fare_amount: pkg.price,

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { getActiveSightseeingPackages } from "@/lib/pricing/sightseeing";
@@ -20,7 +21,9 @@ export default async function SightseeingPage() {
           Explore top city attractions with custom full-day and half-day cab tour packages.
         </p>
         <div className="mt-8">
-          <SightseeingPackageCatalog packages={packages} />
+          <Suspense fallback={<div className="p-8 text-center text-ink/50 font-mono text-sm">Loading sightseeing packages...</div>}>
+            <SightseeingPackageCatalog packages={packages} />
+          </Suspense>
         </div>
       </main>
       <Footer />

@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { requireUser, ensureValidUuid } from "@/lib/auth";
+import { createAdminClient } from "@/lib/supabase/server";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { BookingStatusBadge } from "@/components/booking/BookingStatusBadge";
@@ -16,12 +16,13 @@ const SERVICE_LABEL: Record<string, string> = {
 
 export default async function BookingsPage() {
   const user = await requireUser("/login?redirect=/bookings");
-  const supabase = createClient();
+  const validUserId = ensureValidUuid(user.id, user.email);
+  const db = createAdminClient();
 
-  const { data: bookings } = await supabase
+  const { data: bookings } = await db
     .from("bookings")
     .select("*")
-    .eq("customer_id", user.id)
+    .eq("customer_id", validUserId)
     .order("created_at", { ascending: false });
 
   const list = (bookings ?? []) as Booking[];

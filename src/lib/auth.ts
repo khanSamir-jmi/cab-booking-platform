@@ -1,7 +1,20 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import crypto from "crypto";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import type { Profile } from "@/types/database.types";
+
+/**
+ * Ensures a valid UUID format for PostgreSQL.
+ * If input is already a UUID, returns it. Otherwise, hashes the seed into a deterministic UUID.
+ */
+export function ensureValidUuid(id?: string | null, email?: string | null): string {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (id && uuidRegex.test(id)) return id;
+  const seed = (email || id || "anonymous").toLowerCase().trim();
+  const hash = crypto.createHash("sha256").update(seed).digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+}
 
 function getCookieSession() {
   try {
@@ -18,10 +31,11 @@ export async function getCurrentUser() {
   // 1. Check local session cookie first (0 ms, zero network delay)
   const cookieUser = getCookieSession();
   if (cookieUser && cookieUser.email) {
+    const validId = ensureValidUuid(cookieUser.id, cookieUser.email);
     return {
-      id: cookieUser.id || "user-id",
+      id: validId,
       email: cookieUser.email,
-      phone: null,
+      phone: cookieUser.phone || null,
       user_metadata: { full_name: cookieUser.email.split("@")[0] },
     } as any;
   }
@@ -32,7 +46,12 @@ export async function getCurrentUser() {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user) return user;
+    if (user) {
+      return {
+        ...user,
+        id: ensureValidUuid(user.id, user.email),
+      };
+    }
   } catch {
     // Ignore Supabase fetch errors silently
   }
@@ -45,20 +64,22 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   const user = await getCurrentUser();
   if (!user) return null;
 
+  const validId = ensureValidUuid(user.id, user.email);
   const isEmailAdmin =
     user.email?.toLowerCase().includes("admin@") ||
     user.email?.toLowerCase() === process.env.ADMIN_EMAIL?.toLowerCase();
 
   try {
-    const supabase = createClient();
-    const { data: profile } = await supabase
+    const db = createAdminClient();
+    const { data: profile } = await db
       .from("profiles")
       .select("*")
-      .eq("id", user.id)
+      .eq("id", validId)
       .single();
 
     if (profile) {
       if (isEmailAdmin && profile.role !== "admin") {
+        await db.from("profiles").update({ role: "admin" }).eq("id", validId);
         return { ...(profile as Profile), role: "admin" };
       }
       return profile as Profile;
@@ -69,7 +90,7 @@ export async function getCurrentProfile(): Promise<Profile | null> {
 
   const role = isEmailAdmin ? "admin" : "customer";
   return {
-    id: user.id,
+    id: validId,
     full_name: user.email?.split("@")[0] || "User",
     phone: null,
     role,

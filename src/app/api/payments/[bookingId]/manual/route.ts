@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { logNotification } from "@/lib/notifications";
 import type { PaymentMethod } from "@/types/database.types";
@@ -18,7 +18,7 @@ export async function POST(
   const method: PaymentMethod = body?.method || "cash";
   const reference: string | undefined = body?.reference;
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data: booking, error: bError } = await supabase
     .from("bookings")
     .select("id, fare_amount")

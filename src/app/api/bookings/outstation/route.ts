@@ -1,13 +1,11 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentUser, ensureValidUuid } from "@/lib/auth";
 import { getOutstationRouteById } from "@/lib/pricing/outstation";
 import { sendWhatsAppNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return NextResponse.json(
@@ -57,13 +55,34 @@ export async function POST(request: Request) {
   };
 
   try {
-    const { data: booking, error } = await supabase
+    const validUserId = ensureValidUuid(user.id, user.email);
+    const db = createAdminClient();
+
+    // Ensure profile row exists for foreign key
+    try {
+      await db.from("profiles").upsert(
+        {
+          id: validUserId,
+          full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Customer",
+          phone: user.phone || null,
+          role: "customer",
+        },
+        { onConflict: "id" }
+      );
+    } catch {
+      // Safe fallback
+    }
+
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const cleanRouteId = route.id && uuidRegex.test(route.id) ? route.id : null;
+
+    const { data: booking, error } = await db
       .from("bookings")
       .insert({
-        customer_id: user.id,
+        customer_id: validUserId,
         service_type: "outstation",
         status: "requested",
-        route_id: route.id.startsWith("route-") ? null : route.id,
+        route_id: cleanRouteId,
         pickup_location: pickup.trim(),
         drop_location: `${route.to_city}`,
         fare_breakdown: fareBreakdown,

@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
+import { getCurrentUser, ensureValidUuid } from "@/lib/auth";
 import { getMockDistanceKm } from "@/lib/distance/mock";
+import { getDistanceKm } from "@/lib/distance";
 import { getActiveLocalPricing, computeLocalFare } from "@/lib/pricing/local";
 import { sendWhatsAppNotification } from "@/lib/notifications";
 
 export async function POST(request: Request) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) {
     return NextResponse.json(
@@ -39,14 +38,38 @@ export async function POST(request: Request) {
   }
 
   try {
-    const distanceKm = getMockDistanceKm(pickup, drop);
+    let distanceKm = 15;
+    try {
+      distanceKm = await getDistanceKm(pickup, drop);
+    } catch {
+      distanceKm = getMockDistanceKm(pickup, drop);
+    }
+
     const { base_fare, per_km_rate } = await getActiveLocalPricing();
     const fareBreakdown = computeLocalFare(distanceKm, base_fare, per_km_rate);
 
-    const { data: booking, error } = await supabase
+    const validUserId = ensureValidUuid(user.id, user.email);
+    const db = createAdminClient();
+
+    // Ensure profile row exists for foreign key
+    try {
+      await db.from("profiles").upsert(
+        {
+          id: validUserId,
+          full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Customer",
+          phone: user.phone || null,
+          role: "customer",
+        },
+        { onConflict: "id" }
+      );
+    } catch {
+      // Safe fallback
+    }
+
+    const { data: booking, error } = await db
       .from("bookings")
       .insert({
-        customer_id: user.id,
+        customer_id: validUserId,
         service_type: "local",
         status: "requested",
         pickup_location: pickup.trim(),

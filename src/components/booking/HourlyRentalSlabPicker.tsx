@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { createClient } from "@/lib/supabase/client";
 import type { HourlyRentalSlab } from "@/types/database.types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,14 +19,14 @@ const inputClass =
   "mt-1.5 w-full rounded-stub border border-line bg-white px-3 py-2 text-sm text-ink focus:border-route focus:outline-none";
 
 export function HourlyRentalSlabPicker({ slabs }: { slabs: HourlyRentalSlab[] }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [selectedSlabId, setSelectedSlabId] = useState<string>(slabs[0]?.id || "");
-  const [pickup, setPickup] = useState("");
+  const [pickup, setPickup] = useState(searchParams.get("pickup") || "");
   const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt());
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const router = useRouter();
-  const supabase = createClient();
 
   const selectedSlab = slabs.find((s) => s.id === selectedSlabId) || slabs[0];
 
@@ -41,17 +40,8 @@ export function HourlyRentalSlabPicker({ slabs }: { slabs: HourlyRentalSlab[] })
       return;
     }
     setError(null);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push(`/login?redirect=${encodeURIComponent("/hourly")}`);
-      return;
-    }
-
     setConfirming(true);
+
     try {
       const res = await fetch("/api/bookings/hourly", {
         method: "POST",
@@ -62,6 +52,15 @@ export function HourlyRentalSlabPicker({ slabs }: { slabs: HourlyRentalSlab[] })
           scheduledAt: new Date(scheduledAt).toISOString(),
         }),
       });
+
+      if (res.status === 401) {
+        const currentUrl =
+          window.location.pathname +
+          (window.location.search || `?pickup=${encodeURIComponent(pickup)}`);
+        router.push(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not create hourly booking.");
       router.push(`/bookings/${data.booking.id}`);

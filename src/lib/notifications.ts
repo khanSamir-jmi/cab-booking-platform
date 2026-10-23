@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export async function logNotification(bookingId: string, channel: "email" | "sms", status: string) {
   try {
-    const supabase = createClient();
+    const supabase = createAdminClient();
     await supabase.from("notifications_log").insert({
       booking_id: bookingId,
       channel,

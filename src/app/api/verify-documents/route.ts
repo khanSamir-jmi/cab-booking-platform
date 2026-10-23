@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   // Simulate OCR validation delay (1.5 seconds)
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const { data: booking, error } = await supabase
     .from("bookings")
     .update({

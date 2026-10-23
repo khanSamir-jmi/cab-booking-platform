@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { createClient } from "@/lib/supabase/client";
 import type { OutstationRoute } from "@/types/database.types";
 import { formatCurrency } from "@/lib/utils";
 
@@ -20,15 +19,15 @@ const inputClass =
   "mt-1.5 w-full rounded-stub border border-line bg-white px-3 py-2 text-sm text-ink focus:border-route focus:outline-none";
 
 export function OutstationBookingForm({ routes }: { routes: OutstationRoute[] }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   const [selectedRouteId, setSelectedRouteId] = useState(routes[0]?.id || "");
-  const [pickup, setPickup] = useState("");
+  const [pickup, setPickup] = useState(searchParams.get("pickup") || "");
   const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt());
   const [isShared, setIsShared] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const router = useRouter();
-  const supabase = createClient();
 
   const selectedRoute = routes.find((r) => r.id === selectedRouteId) || routes[0];
 
@@ -48,17 +47,8 @@ export function OutstationBookingForm({ routes }: { routes: OutstationRoute[] })
       return;
     }
     setError(null);
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      router.push(`/login?redirect=${encodeURIComponent("/outstation")}`);
-      return;
-    }
-
     setConfirming(true);
+
     try {
       const res = await fetch("/api/bookings/outstation", {
         method: "POST",
@@ -70,6 +60,15 @@ export function OutstationBookingForm({ routes }: { routes: OutstationRoute[] })
           isShared,
         }),
       });
+
+      if (res.status === 401) {
+        const currentUrl =
+          window.location.pathname +
+          (window.location.search || `?pickup=${encodeURIComponent(pickup)}`);
+        router.push(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not create outstation booking.");
       router.push(`/bookings/${data.booking.id}`);

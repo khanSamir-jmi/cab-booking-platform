@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { ensureValidUuid } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -109,13 +110,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const userId = activeUser?.id || `usr_${Date.now()}`;
+    const userId = ensureValidUuid(activeUser?.id, email);
     const userRole = isAdmin ? "admin" : "customer";
 
     try {
-      await supabase.from("profiles").upsert({
+      const db = createAdminClient();
+      await db.from("profiles").upsert({
         id: userId,
-        full_name: email.split("@")[0],
+        full_name: isEmail ? email.split("@")[0] : `Rider ${rawInput}`,
         role: userRole,
       });
     } catch {
@@ -142,11 +144,12 @@ export async function POST(request: Request) {
     return response;
   } catch (err: any) {
     console.error("Server auth error:", err);
+    const userId = ensureValidUuid(null, email);
     const userRole = isAdmin ? "admin" : "customer";
     const response = NextResponse.json({ success: true, redirectUrl });
     response.cookies.set(
       "app_session_user",
-      JSON.stringify({ id: `usr_${Date.now()}`, email, role: userRole }),
+      JSON.stringify({ id: userId, email, role: userRole }),
       {
         path: "/",
         httpOnly: true,

@@ -1,12 +1,12 @@
 import { requireAdmin } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { AdminNavbar } from "@/components/admin/AdminNavbar";
 import { Footer } from "@/components/layout/Footer";
 import { DispatchQueueTable } from "@/components/admin/DispatchQueueTable";
 
 export default async function AdminDashboardPage() {
   await requireAdmin();
-  const supabase = createClient();
+  const supabase = createAdminClient();
 
   const { data: bookings } = await supabase
     .from("bookings")

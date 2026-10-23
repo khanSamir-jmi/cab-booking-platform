@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { LocalBookingForm } from "@/components/booking/LocalBookingForm";
@@ -18,7 +19,9 @@ export default function LocalBookingPage() {
           you won&apos;t need to log in until you&apos;re ready to confirm.
         </p>
         <div className="mt-8">
-          <LocalBookingForm />
+          <Suspense fallback={<div className="p-8 text-center text-ink/50 font-mono text-sm">Loading booking form...</div>}>
+            <LocalBookingForm />
+          </Suspense>
         </div>
       </main>
       <Footer />
